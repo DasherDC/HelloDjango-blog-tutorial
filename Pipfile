@@ -1,5 +1,5 @@
 [[source]]
-url = "https://pypi.org/simple"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
 verify_ssl = true
 name = "pypi"
 
@@ -7,6 +7,9 @@ name = "pypi"
 django = "==2.2.3"
 markdown = "*"
 gunicorn = "*"
+django-pure-pagination = "*"
+faker = "*"
+django-haystack = ">=2,<3"
 
 [dev-packages]
 

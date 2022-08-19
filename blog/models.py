@@ -4,7 +4,10 @@ from django.utils import timezone
 from django.urls import reverse
 import markdown
 from django.utils.html import strip_tags
-
+from django.utils.functional import cached_property
+from markdown.extensions.toc import TocExtension
+from django.utils.text import slugify
+import re
 
 
 class Category(models.Model):
@@ -86,6 +89,24 @@ class Post(models.Model):
     # Category 类似。
     author = models.ForeignKey(User, verbose_name='作者', on_delete=models.CASCADE)
 
+    views = models.PositiveIntegerField(default=0, editable=False)
+
+    @property
+    def toc(self):
+        return self.rich_content.get("toc", "")
+
+    @property
+    def body_html(self):
+        return self.rich_content.get("content", "")
+
+    @cached_property
+    def rich_content(self):
+        return generate_rich_content(self.body)
+
+    def increase_views(self):
+        self.views += 1
+        self.save(update_fields=['views'])
+
     class Meta:
         verbose_name = '文章'
         verbose_name_plural = verbose_name
@@ -113,3 +134,17 @@ class Post(models.Model):
 
     def get_absolute_url(self):
         return reverse('blog:detail', kwargs={'pk': self.pk})
+
+def generate_rich_content(value):
+    md = markdown.Markdown(
+        extensions=[
+            "markdown.extensions.extra",
+            "markdown.extensions.codehilite",
+            # 记得在顶部引入 TocExtension 和 slugify
+            TocExtension(slugify=slugify),
+        ]
+    )
+    content = md.convert(value)
+    m = re.search(r'<div class="toc">\s*<ul>(.*)</ul>\s*</div>', md.toc, re.S)
+    toc = m.group(1) if m is not None else ""
+    return {"content": content, "toc": toc}
